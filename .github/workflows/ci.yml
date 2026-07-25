@@ -34,8 +34,10 @@ jobs:
 
       - name: Unit and integration tests
         # PGlite is real Postgres compiled to WebAssembly, so the integration
-        # suite needs no database service container.
-        run: npm test -- --reporter=verbose --no-color
+        # suite needs no database service container. The github-actions reporter
+        # annotates failures inline on the commit and pull request, which beats
+        # digging through raw job logs.
+        run: npm test -- --reporter=default --reporter=github-actions --no-color
         env:
           TZ: UTC
 
