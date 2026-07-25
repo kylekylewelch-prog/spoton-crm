@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Typecheck, test and smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit and integration tests
+        # PGlite is real Postgres compiled to WebAssembly, so the integration
+        # suite needs no database service container.
+        run: npm test
+
+      - name: Prepare the demo database
+        run: npm run db:setup
+
+      - name: Build
+        run: npm run build
+
+      - name: End-to-end smoke test
+        run: npm run test:e2e
+        env:
+          MCP_API_TOKEN: ci-mcp-token

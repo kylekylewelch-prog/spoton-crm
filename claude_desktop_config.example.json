@@ -1,0 +1,14 @@
+{
+  "//": "Copy the mcpServers entry into your Claude Desktop config, adjusting the cwd to where you cloned SpotOn. On macOS the file lives at ~/Library/Application Support/Claude/claude_desktop_config.json; on Windows at %APPDATA%/Claude/claude_desktop_config.json.",
+  "mcpServers": {
+    "spoton": {
+      "command": "npx",
+      "args": ["tsx", "src/mcp/stdio.ts"],
+      "cwd": "/absolute/path/to/spoton-crm",
+      "env": {
+        "DATABASE_URL": "pglite://./.pglite",
+        "MCP_USER_EMAIL": "integration@spoton.dev"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+services:
+  # Optional. The application runs against embedded PGlite by default, so this is
+  # only needed to develop against a real Postgres server. Point DATABASE_URL at
+  # it and the same migrations apply unchanged.
+  postgres:
+    image: postgres:17-alpine
+    container_name: spoton-postgres
+    environment:
+      POSTGRES_USER: spoton
+      POSTGRES_PASSWORD: spoton
+      POSTGRES_DB: spoton
+    ports:
+      - '5432:5432'
+    volumes:
+      - spoton-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U spoton -d spoton']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  spoton-pgdata:
