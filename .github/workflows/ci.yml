@@ -7,16 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  verify:
-    name: Typecheck, test and smoke
+  test:
+    name: Typecheck and test (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      # Both supported majors run, and one failing does not mask the other —
+      # which is what makes a version-specific break obvious rather than a
+      # mystery.
+      fail-fast: false
+      matrix:
+        node: [22, 24]
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - name: Install dependencies
@@ -28,7 +35,25 @@ jobs:
       - name: Unit and integration tests
         # PGlite is real Postgres compiled to WebAssembly, so the integration
         # suite needs no database service container.
-        run: npm test
+        run: npm test -- --reporter=verbose --no-color
+        env:
+          TZ: UTC
+
+  smoke:
+    name: Build and end-to-end smoke
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Prepare the demo database
         run: npm run db:setup
@@ -40,3 +65,4 @@ jobs:
         run: npm run test:e2e
         env:
           MCP_API_TOKEN: ci-mcp-token
+          TZ: UTC
