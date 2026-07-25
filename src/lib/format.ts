@@ -1,3 +1,5 @@
+import { formatMoney } from '@/domain/money';
+
 /** Display helpers safe to use in client components. */
 
 export function money(cents: number | null | undefined, currency = 'USD'): string {
@@ -10,22 +12,13 @@ export function money(cents: number | null | undefined, currency = 'USD'): strin
   }).format(cents / 100);
 }
 
+/**
+ * Delegates to the domain formatter so the UI and the MCP responses render an
+ * amount identically, and so the ICU-version independence is implemented once.
+ */
 export function moneyCompact(cents: number | null | undefined, currency = 'USD'): string {
   if (cents === null || cents === undefined) return '—';
-  const v = cents / 100;
-  if (Math.abs(v) < 1000) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(v);
-  }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(v);
+  return formatMoney(cents, currency, { compact: true });
 }
 
 export function signedMoney(cents: number, currency = 'USD'): string {

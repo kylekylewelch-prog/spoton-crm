@@ -80,20 +80,48 @@ export function centsToNumber(cents: number): number {
   return cents / 100;
 }
 
+const COMPACT_UNITS = [
+  { limit: 1e12, suffix: 'T' },
+  { limit: 1e9, suffix: 'B' },
+  { limit: 1e6, suffix: 'M' },
+  { limit: 1e3, suffix: 'K' },
+] as const;
+
+/**
+ * Formats an amount for display.
+ *
+ * Compaction is done here rather than handed to `Intl`'s `notation: 'compact'`,
+ * which renders trailing fraction digits differently across ICU versions — the
+ * same call yields "$125.0K" on Node 22 and "$125K" on Node 24. A money figure
+ * that changes shape with the runtime is not acceptable in a dashboard tile or an
+ * MCP response, so the scale and the digits are decided here and `Intl` is left
+ * to do only what it is reliable at: the currency symbol and thousands grouping.
+ */
 export function formatMoney(
   cents: number,
   currency = 'USD',
   opts: { compact?: boolean; decimals?: boolean } = {},
 ): string {
   const value = cents / 100;
-  if (opts.compact && Math.abs(value) >= 1000) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value);
+
+  if (opts.compact) {
+    const magnitude = Math.abs(value);
+    for (const unit of COMPACT_UNITS) {
+      if (magnitude >= unit.limit) {
+        const scaled = value / unit.limit;
+        // One decimal below 100 ("$1.3M"), none above it ("$125K"), and never a
+        // trailing zero, because minimumFractionDigits is pinned to 0.
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: Math.abs(scaled) < 100 ? 1 : 0,
+        }).format(scaled);
+        return `${formatted}${unit.suffix}`;
+      }
+    }
   }
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

@@ -73,4 +73,38 @@ describe('money primitives', () => {
     expect(formatMoney(499, 'USD', { decimals: true })).toBe('$4.99');
     expect(formatBps(1250)).toBe('12.5%');
   });
+
+  /**
+   * Compaction is deliberately not delegated to Intl's `notation: 'compact'`,
+   * which renders trailing fraction digits differently across ICU versions —
+   * "$125.0K" on Node 22 against "$125K" on Node 24. These assertions pin the
+   * shape so a runtime upgrade cannot quietly restyle every figure in the product.
+   */
+  describe('compact money is stable across runtimes', () => {
+    it('never emits a trailing zero decimal', () => {
+      expect(formatMoney(12_500_000, 'USD', { compact: true })).toBe('$125K');
+      expect(formatMoney(100_000_000, 'USD', { compact: true })).toBe('$1M');
+      expect(formatMoney(500_000_000_000, 'USD', { compact: true })).toBe('$5B');
+    });
+
+    it('keeps one decimal below 100 of a unit and drops it above', () => {
+      expect(formatMoney(1_250_000, 'USD', { compact: true })).toBe('$12.5K');
+      expect(formatMoney(125_000_000, 'USD', { compact: true })).toBe('$1.3M');
+      expect(formatMoney(45_678_000_000, 'USD', { compact: true })).toBe('$457M');
+    });
+
+    it('leaves amounts below a thousand uncompacted', () => {
+      expect(formatMoney(99_900, 'USD', { compact: true })).toBe('$999');
+      expect(formatMoney(0, 'USD', { compact: true })).toBe('$0');
+    });
+
+    it('compacts negatives symmetrically', () => {
+      expect(formatMoney(-12_500_000, 'USD', { compact: true })).toBe('-$125K');
+      expect(formatMoney(-1_250_000, 'USD', { compact: true })).toBe('-$12.5K');
+    });
+
+    it('honours the currency', () => {
+      expect(formatMoney(12_500_000, 'EUR', { compact: true })).toBe('€125K');
+    });
+  });
 });
